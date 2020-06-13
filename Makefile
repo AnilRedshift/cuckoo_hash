@@ -33,7 +33,7 @@ all: directories $(TARGET)
 test: $(TEST_TARGETS) run_tests
 
 run_tests: $(TEST_TARGETS)
-	$(info $(shell for file in $(TARGETDIR)/tests/*; do $$file 2>&1; done))
+	$(info $(shell for file in $(TARGETDIR)/tests/*; do $$file 2>&1 | $(TESTDIR)/greenest; done))
 
 #Remake
 remake: cleaner all
