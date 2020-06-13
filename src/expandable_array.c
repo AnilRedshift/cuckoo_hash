@@ -49,9 +49,21 @@ ExpandableArray *createExpandableArray(size_t item_size)
 }
 
 // This isn't marked as static so we can unit test it
-size_t getLevelForIndexInExpandableArray(ExpandableArray *array, size_t index)
+size_t getLevelForIndexInExpandableArray(size_t index)
 {
-  return 0;
+  return (size_t)log2(index + 1);
+}
+
+// This isn't marked as static so we can unit test it
+size_t getLevelOffsetForIndexInExpandedArray(size_t index, size_t level_index)
+{
+  if (index == 0)
+  {
+    return 0;
+  }
+  // The previous levels could hold 2^n - 1 items
+  size_t base = (1 << level_index) - 1;
+  return index - base;
 }
 
 void freeExpandableArray(ExpandableArray *array)

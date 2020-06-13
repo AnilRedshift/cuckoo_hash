@@ -1,7 +1,8 @@
 #include "greatest.h"
 #include "expandable_array.h"
 
-extern size_t getLevelForIndexInExpandableArray(ExpandableArray *array, size_t index);
+extern size_t getLevelForIndexInExpandableArray(size_t index);
+extern size_t getLevelOffsetForIndexInExpandedArray(size_t index, size_t level_index);
 
 typedef struct
 {
@@ -9,12 +10,11 @@ typedef struct
   ExpandableArray *array4;
 } TestData;
 
-TEST test_get_level_and_index(void *args)
+TEST test_get_level_for_index(void *args)
 {
-  TestData *test_data = (TestData *)args;
   for (size_t i = 0; i < 18; ++i)
   {
-    size_t expected;
+    size_t expected = -1;
     switch (i)
     {
     case 0:
@@ -39,13 +39,89 @@ TEST test_get_level_and_index(void *args)
     case 13:
     case 14:
       expected = 3;
+      break;
     case 15:
     case 16:
     case 17:
       expected = 4;
+      break;
     }
 
-    ASSERT_EQ_FMT(expected, getLevelForIndexInExpandableArray(test_data->array, i), "%zu");
+    ASSERT_EQ_FMT(expected, getLevelForIndexInExpandableArray(i), "%zu");
+  }
+  PASS();
+}
+
+TEST test_get_offsetfor_index(void *args)
+{
+  for (size_t i = 0; i < 18; ++i)
+  {
+    size_t expected = -1;
+    switch (i)
+    {
+    case 0:
+      expected = 0;
+      break;
+    case 1:
+      expected = 0;
+      break;
+    case 2:
+      expected = 1;
+      break;
+    case 3:
+      expected = 0;
+      break;
+    case 4:
+      expected = 1;
+      break;
+    case 5:
+      expected = 2;
+      break;
+    case 6:
+      expected = 3;
+      break;
+
+    case 7:
+      expected = 0;
+      break;
+    case 8:
+      expected = 1;
+      break;
+    case 9:
+      expected = 2;
+      break;
+    case 10:
+      expected = 3;
+      break;
+    case 11:
+      expected = 4;
+      break;
+    case 12:
+      expected = 5;
+      break;
+    case 13:
+      expected = 6;
+      break;
+    case 14:
+      expected = 7;
+      break;
+    case 15:
+      expected = 0;
+      break;
+    case 16:
+      expected = 1;
+      break;
+    case 17:
+      expected = 2;
+      break;
+    }
+    size_t level = getLevelForIndexInExpandableArray(i);
+    size_t offset = getLevelOffsetForIndexInExpandedArray(i, level);
+
+    char msg[25];
+    sprintf(msg, "Failed for index %zu", i);
+
+    ASSERT_EQ_FMTm(msg, expected, offset, "%zu");
   }
   PASS();
 }
@@ -70,7 +146,8 @@ SUITE(ExpandableArraySuite)
 
   GREATEST_SET_SETUP_CB(test_setup, &test_data);
   GREATEST_SET_TEARDOWN_CB(test_teardown, &test_data);
-  RUN_TEST1(test_get_level_and_index, &test_data);
+  RUN_TEST1(test_get_level_for_index, &test_data);
+  RUN_TEST1(test_get_offsetfor_index, &test_data);
 }
 
 GREATEST_MAIN_DEFS();
