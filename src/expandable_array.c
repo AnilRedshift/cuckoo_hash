@@ -48,8 +48,33 @@ ExpandableArray *createExpandableArray(size_t item_size)
   return expandableArray;
 }
 
+static bool ensureCapacity(ExpandableArray *array, int index)
+{
+  while (index >= getCapacityOfExpandableArray(array))
+  {
+    const size_t new_num_levels = array->num_levels + 1;
+    const size_t next_level_capacity = 1 << array->num_levels;
+    ExpandableArrayLevel *next_level = createLevel(array->item_size, next_level_capacity);
+    if (!next_level)
+    {
+      return false;
+    }
+    ExpandableArrayLevel **new_levels = realloc(array->levels, sizeof(ExpandableArrayLevel *) * new_num_levels);
+    if (!new_levels)
+    {
+      free(next_level);
+      return false;
+    }
+    new_levels[new_num_levels - 1] = next_level;
+
+    array->levels = new_levels;
+    array->num_levels = new_num_levels;
+  }
+  return true;
+}
+
 // This isn't marked as static so we can unit test it
-size_t getLevelForIndexInExpandableArray(size_t index)
+size_t getLevelIndexForIndexInExpandableArray(size_t index)
 {
   return (size_t)log2(index + 1);
 }
@@ -77,4 +102,36 @@ void freeExpandableArray(ExpandableArray *array)
     free(array->levels);
     free(array);
   }
+}
+
+void *getValueInExpandableArray(ExpandableArray *array, size_t index)
+{
+  void *value = NULL;
+  size_t level_index = getLevelIndexForIndexInExpandableArray(index);
+  if (level_index < array->num_levels)
+  {
+    ExpandableArrayLevel *level = array->levels[level_index];
+    size_t offset = getLevelOffsetForIndexInExpandedArray(index, level_index);
+    value = (char *)&level->buf + offset * array->item_size;
+  }
+  return value;
+}
+
+bool setValueInExpandableArray(ExpandableArray *array, size_t index, void const *value)
+{
+  if (!ensureCapacity(array, index))
+  {
+    return false;
+  }
+  void *dest = getValueInExpandableArray(array, index);
+  if (dest)
+  {
+    memcpy(dest, value, array->item_size);
+  }
+  return true;
+}
+
+size_t getCapacityOfExpandableArray(ExpandableArray *array)
+{
+  return (1 << array->num_levels) - 1;
 }

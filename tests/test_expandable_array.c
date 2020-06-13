@@ -1,7 +1,7 @@
 #include "greatest.h"
 #include "expandable_array.h"
 
-extern size_t getLevelForIndexInExpandableArray(size_t index);
+extern size_t getLevelIndexForIndexInExpandableArray(size_t index);
 extern size_t getLevelOffsetForIndexInExpandedArray(size_t index, size_t level_index);
 
 typedef struct
@@ -47,7 +47,7 @@ TEST test_get_level_for_index(void *args)
       break;
     }
 
-    ASSERT_EQ_FMT(expected, getLevelForIndexInExpandableArray(i), "%zu");
+    ASSERT_EQ_FMT(expected, getLevelIndexForIndexInExpandableArray(i), "%zu");
   }
   PASS();
 }
@@ -115,13 +115,150 @@ TEST test_get_offsetfor_index(void *args)
       expected = 2;
       break;
     }
-    size_t level = getLevelForIndexInExpandableArray(i);
+    size_t level = getLevelIndexForIndexInExpandableArray(i);
     size_t offset = getLevelOffsetForIndexInExpandedArray(i, level);
 
     char msg[25];
     sprintf(msg, "Failed for index %zu", i);
 
     ASSERT_EQ_FMTm(msg, expected, offset, "%zu");
+  }
+  PASS();
+}
+
+TEST test_get_capacity(void *args)
+{
+  TestData *test_data = (TestData *)args;
+  for (size_t i = 0; i < 18; ++i)
+  {
+    size_t expected = -1;
+    switch (i)
+    {
+    case 0:
+      expected = 1;
+      break;
+    case 1:
+    case 2:
+      expected = 3;
+      break;
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+      expected = 7;
+      break;
+    case 7:
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+      expected = 15;
+      break;
+    case 15:
+    case 16:
+    case 17:
+      expected = 31;
+      break;
+    }
+    char msg[25];
+    sprintf(msg, "Failed for index %zu", i);
+
+    char value = 'a';
+    ASSERT(setValueInExpandableArray(test_data->array, i, &value));
+    size_t actual = getCapacityOfExpandableArray(test_data->array);
+    ASSERT_EQ_FMTm(msg, expected, actual, "%zu");
+  }
+  PASS();
+}
+
+TEST test_get_value_beyond_capacity(void *args)
+{
+  TestData *test_data = (TestData *)args;
+  void *result = getValueInExpandableArray(test_data->array, 42);
+  ASSERT_FALSE(result);
+  PASS();
+}
+
+TEST test_set_and_get_first_value(void *args)
+{
+  TestData *test_data = (TestData *)args;
+  char value = 'a';
+  ASSERT(setValueInExpandableArray(test_data->array, 0, &value));
+  char *result = getValueInExpandableArray(test_data->array, 0);
+  ASSERT(result);
+  ASSERT_EQ_FMT('a', *result, "%c");
+  PASS();
+}
+
+TEST test_set_and_get_first_value_of_integers(void *args)
+{
+  TestData *test_data = (TestData *)args;
+  int value = 42;
+  ASSERT(setValueInExpandableArray(test_data->array4, 0, &value));
+  int *result = getValueInExpandableArray(test_data->array4, 0);
+  ASSERT(result);
+  ASSERT_EQ_FMT(42, *result, "%d");
+  PASS();
+}
+
+TEST test_set_and_get_at_first_index(void *args)
+{
+  TestData *test_data = (TestData *)args;
+  int value = 42;
+  ASSERT(setValueInExpandableArray(test_data->array4, 1, &value));
+  int *result = getValueInExpandableArray(test_data->array4, 1);
+  ASSERT(result);
+  ASSERT_EQ_FMT(42, *result, "%d");
+  PASS();
+}
+
+TEST test_set_and_get_at_tenth_index(void *args)
+{
+  TestData *test_data = (TestData *)args;
+  int value = 42;
+  ASSERT(setValueInExpandableArray(test_data->array4, 10, &value));
+  int *result = getValueInExpandableArray(test_data->array4, 10);
+  ASSERT(result);
+  ASSERT_EQ_FMT(42, *result, "%d");
+  PASS();
+}
+
+uint32_t MurmurOAAT32(const char *key)
+{
+  uint32_t h = 3323198485ul;
+  for (; *key; ++key)
+  {
+    h ^= *key;
+    h *= 0x5bd1e995;
+    h ^= h >> 15;
+  }
+  return h;
+}
+
+TEST test_set_multiple_values(void *args)
+{
+  TestData *test_data = (TestData *)args;
+  const size_t MAX_SIZE = 300;
+  for (size_t i = 0; i < 50; ++i)
+  {
+    char buf[20];
+    sprintf(buf, "my cool key for %zu", i);
+    const uint32_t index = MurmurOAAT32(buf) % MAX_SIZE;
+    ASSERT(setValueInExpandableArray(test_data->array4, index, &index));
+  }
+
+  for (size_t i = 0; i < 50; ++i)
+  {
+    char buf[20];
+    sprintf(buf, "my cool key for %zu", i);
+    const uint32_t index = MurmurOAAT32(buf) % MAX_SIZE;
+    void *const result = getValueInExpandableArray(test_data->array4, index);
+    ASSERT(result);
+    uint32_t actual = *(uint32_t *)result;
+    ASSERT_EQ_FMT(index, actual, "%u");
   }
   PASS();
 }
@@ -148,6 +285,13 @@ SUITE(ExpandableArraySuite)
   GREATEST_SET_TEARDOWN_CB(test_teardown, &test_data);
   RUN_TEST1(test_get_level_for_index, &test_data);
   RUN_TEST1(test_get_offsetfor_index, &test_data);
+  RUN_TEST1(test_get_capacity, &test_data);
+  RUN_TEST1(test_get_value_beyond_capacity, &test_data);
+  RUN_TEST1(test_set_and_get_first_value, &test_data);
+  RUN_TEST1(test_set_and_get_first_value_of_integers, &test_data);
+  RUN_TEST1(test_set_and_get_at_first_index, &test_data);
+  RUN_TEST1(test_set_and_get_at_tenth_index, &test_data);
+  RUN_TEST1(test_set_multiple_values, &test_data);
 }
 
 GREATEST_MAIN_DEFS();
