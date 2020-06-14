@@ -131,3 +131,20 @@ size_t getCapacityOfExpandableArray(ExpandableArray *array)
 {
   return (1 << array->num_levels) - 1;
 }
+
+void decreaseCapacityOfExpandableArray(ExpandableArray *array, size_t desired_capacity)
+{
+  while (array->num_levels > 1)
+  {
+    size_t level_capacity = 1 << (array->num_levels - 1);
+    size_t previous_capacity = getCapacityOfExpandableArray(array) - level_capacity;
+    if (previous_capacity < desired_capacity)
+    {
+      break;
+    }
+    void *level = array->levels[array->num_levels - 1];
+    free(level);
+    array->levels[array->num_levels - 1] = NULL;
+    array->num_levels--;
+  }
+}

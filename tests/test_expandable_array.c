@@ -263,6 +263,40 @@ TEST test_set_multiple_values(void *args)
   PASS();
 }
 
+TEST test_decrease_capacity_from_capacity_one(void *args)
+{
+  TestData *test_data = (TestData *)args;
+  decreaseCapacityOfExpandableArray(test_data->array, 0);
+  size_t actual = getCapacityOfExpandableArray(test_data->array);
+  size_t expected = 1;
+  ASSERT_EQ_FMT(expected, actual, "%zu");
+  PASS();
+}
+
+TEST test_decrease_capacity_to_exact_level(void *args)
+{
+  TestData *test_data = (TestData *)args;
+  char value = 'a';
+  ASSERT(setValueInExpandableArray(test_data->array, 10, &value));
+  decreaseCapacityOfExpandableArray(test_data->array, 3);
+  size_t actual = getCapacityOfExpandableArray(test_data->array);
+  size_t expected = 3;
+  ASSERT_EQ_FMT(expected, actual, "%zu");
+  PASS();
+}
+
+TEST test_no_decrease_when_not_below_previous_capacity(void *args)
+{
+  TestData *test_data = (TestData *)args;
+  char value = 'a';
+  ASSERT(setValueInExpandableArray(test_data->array, 10, &value));
+  decreaseCapacityOfExpandableArray(test_data->array, 9);
+  size_t actual = getCapacityOfExpandableArray(test_data->array);
+  size_t expected = 15;
+  ASSERT_EQ_FMT(expected, actual, "%zu");
+  PASS();
+}
+
 void test_setup(void *args)
 {
   TestData *test_data = (TestData *)args;
@@ -292,6 +326,9 @@ SUITE(ExpandableArraySuite)
   RUN_TEST1(test_set_and_get_at_first_index, &test_data);
   RUN_TEST1(test_set_and_get_at_tenth_index, &test_data);
   RUN_TEST1(test_set_multiple_values, &test_data);
+  RUN_TEST1(test_decrease_capacity_from_capacity_one, &test_data);
+  RUN_TEST1(test_decrease_capacity_to_exact_level, &test_data);
+  RUN_TEST1(test_no_decrease_when_not_below_previous_capacity, &test_data);
 }
 
 GREATEST_MAIN_DEFS();
