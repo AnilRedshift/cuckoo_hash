@@ -4,24 +4,19 @@
 #include <math.h>
 #include <stdio.h>
 
-typedef struct
-{
-  void *buf;
-} ExpandableArrayLevel;
-
 typedef struct _ExpandableArray
 {
-  ExpandableArrayLevel **levels;
+  void **levels;
   size_t num_levels;
   size_t item_size;
 } _ExpandableArray;
 
-static ExpandableArrayLevel *createLevel(size_t item_size, size_t capacity)
+static void *createLevel(size_t item_size, size_t capacity)
 {
-  ExpandableArrayLevel *level = malloc(offsetof(ExpandableArrayLevel, buf) + item_size * capacity);
+  void *level = malloc(item_size * capacity);
   if (level)
   {
-    memset(&level->buf, 0, item_size * capacity);
+    memset(level, 0, item_size * capacity);
   }
   return level;
 }
@@ -29,8 +24,8 @@ static ExpandableArrayLevel *createLevel(size_t item_size, size_t capacity)
 ExpandableArray *createExpandableArray(size_t item_size)
 {
   _ExpandableArray *expandableArray = malloc(sizeof(_ExpandableArray));
-  ExpandableArrayLevel *firstLevel = createLevel(item_size, 1);
-  ExpandableArrayLevel **levels = malloc(sizeof(_ExpandableArray *));
+  void *firstLevel = createLevel(item_size, 1);
+  void **levels = malloc(sizeof(void *));
   if (expandableArray && firstLevel && levels)
   {
     expandableArray->levels = levels;
@@ -54,12 +49,12 @@ static bool ensureCapacity(ExpandableArray *array, int index)
   {
     const size_t new_num_levels = array->num_levels + 1;
     const size_t next_level_capacity = 1 << array->num_levels;
-    ExpandableArrayLevel *next_level = createLevel(array->item_size, next_level_capacity);
+    void *next_level = createLevel(array->item_size, next_level_capacity);
     if (!next_level)
     {
       return false;
     }
-    ExpandableArrayLevel **new_levels = realloc(array->levels, sizeof(ExpandableArrayLevel *) * new_num_levels);
+    void **new_levels = realloc(array->levels, sizeof(void *) * new_num_levels);
     if (!new_levels)
     {
       free(next_level);
@@ -110,9 +105,10 @@ void *getValueInExpandableArray(ExpandableArray *array, size_t index)
   size_t level_index = getLevelIndexForIndexInExpandableArray(index);
   if (level_index < array->num_levels)
   {
-    ExpandableArrayLevel *level = array->levels[level_index];
+    void *level = array->levels[level_index];
     size_t offset = getLevelOffsetForIndexInExpandedArray(index, level_index);
-    value = (char *)&level->buf + offset * array->item_size;
+    // This has potential portability risks, but suffices for now
+    value = ((char *)level) + offset * array->item_size;
   }
   return value;
 }
