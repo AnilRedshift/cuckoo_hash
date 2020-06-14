@@ -53,5 +53,8 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+# IDE
+.vscode
+
 # Oh apple I despise you
 .DS_Store

@@ -127,6 +127,15 @@ bool setValueInExpandableArray(ExpandableArray *array, size_t index, void const 
   return true;
 }
 
+void deleteValueInExpandableArray(ExpandableArray *array, size_t index)
+{
+  void *dest = getValueInExpandableArray(array, index);
+  if (dest)
+  {
+    memset(dest, 0, array->item_size);
+  }
+}
+
 size_t getCapacityOfExpandableArray(ExpandableArray *array)
 {
   return (1 << array->num_levels) - 1;
